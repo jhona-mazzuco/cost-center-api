@@ -1,0 +1,23 @@
+{
+  "name": "cost-center-api",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "author": "Jhonattan Loli Mazzuco",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node ./src/index.ts",
+    "start:dev": "ts-node ./src/index.ts --watch"
+  },
+  "dependencies": {
+    "@prisma/client": "^2.23.0",
+    "express": "^4.17.1",
+    "pg": "^8.6.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.12",
+    "@types/node": "15.6.1",
+    "prisma": "2.23.0",
+    "ts-node": "10.0.0",
+    "typescript": "4.3.2"
+  }
+}
