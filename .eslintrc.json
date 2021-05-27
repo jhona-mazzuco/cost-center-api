@@ -21,7 +21,7 @@
         "prettier/prettier": "error",
         "indent": [
             "error",
-            "tab"
+            2
         ],
         "quotes": [
             "error",
