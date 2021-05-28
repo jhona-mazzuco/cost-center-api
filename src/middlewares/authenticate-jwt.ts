@@ -13,6 +13,8 @@ export const authenticateJwt = async (
     const token = authorization.split(' ')[1];
     const valid = await service.checkToken(token);
     if (valid) {
+      const user = service.getTokenData(token);
+      request.body = { ...request.body, tokenData: user };
       next();
     } else {
       response

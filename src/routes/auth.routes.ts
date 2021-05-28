@@ -6,13 +6,13 @@ import { authenticateJwt } from '../middlewares/authenticate-jwt';
 
 const app = express();
 
-app.post('/register', async (request: Request, response: Response) => {
+app.post('/register', async (req: Request, res: Response) => {
   try {
-    await service.register(request.body);
-    response.send();
+    const user = await service.register(req.body);
+    res.send(user);
   } catch (e) {
     if (e.code === 'P2002') {
-      response
+      res
         .status(constants.HTTP_STATUS_PRECONDITION_FAILED)
         .send(
           new HttpError(
@@ -20,18 +20,25 @@ app.post('/register', async (request: Request, response: Response) => {
             'E-mail já cadastrado!'
           )
         );
+
+      return;
     }
+
+    console.error(e);
+    res
+      .status(constants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+      .send(new HttpError());
   }
 });
 
-app.post('/login', async (request: Request, response: Response) => {
+app.post('/login', async (req: Request, res: Response) => {
   try {
-    const user = await service.login(request.body);
+    const user = await service.login(req.body);
     if (user) {
       const token = await service.generateToken(user);
-      response.send(token);
+      res.send(token);
     } else {
-      response
+      res
         .status(constants.HTTP_STATUS_UNAUTHORIZED)
         .send(
           new HttpError(
@@ -41,37 +48,26 @@ app.post('/login', async (request: Request, response: Response) => {
         );
     }
   } catch (e) {
-    response
-      .status(constants.HTTP_STATUS_BAD_REQUEST)
-      .send(
-        new HttpError(
-          constants.HTTP_STATUS_BAD_REQUEST,
-          'Ocorreu um erro, tente novamente mais tarde!'
-        )
-      );
+    console.error(e);
+    res
+      .status(constants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+      .send(new HttpError());
   }
 });
 
-app.delete(
-  '/logout',
-  authenticateJwt,
-  async (request: Request, response: Response) => {
-    const authorization = request.headers.authorization;
-    if (authorization) {
-      const token = authorization.split(' ')[1];
-      await service.logout(token);
-      response.send();
-    } else {
-      response
-        .status(constants.HTTP_STATUS_PRECONDITION_FAILED)
-        .send(
-          new HttpError(
-            constants.HTTP_STATUS_PRECONDITION_FAILED,
-            'Ocorreu um erro, tente novamente mais tarde!'
-          )
-        );
+app.delete('/logout', authenticateJwt, async (req: Request, res: Response) => {
+  try {
+    const user = req.body.tokenData;
+    if (user) {
+      await service.logout(user.id);
+      res.send();
     }
+  } catch (e) {
+    console.error(e);
+    res
+      .status(constants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
+      .send(new HttpError());
   }
-);
+});
 
 export default app;

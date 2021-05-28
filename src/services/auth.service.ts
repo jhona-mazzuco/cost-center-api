@@ -2,15 +2,21 @@ import { PrismaClient } from '@prisma/client';
 import { Register } from '../interfaces/register.interface';
 import { compareSync, hash } from 'bcrypt';
 import { Login } from '../interfaces/login.interface';
-import { Secret, sign } from 'jsonwebtoken';
+import { decode, Secret, sign } from 'jsonwebtoken';
 import { User } from '../interfaces/user.interface';
 import { Token } from '../interfaces/token.interface';
 
+const EXPIRATION_TIME = 3600000;
 const prisma = new PrismaClient();
 
-async function register({ email, password, name }: Register): Promise<void> {
+async function register({ email, password, name }: Register): Promise<User> {
   const encryptedPassword = await hash(password, 10);
-  await prisma.user.create({
+  return await prisma.user.create({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
     data: {
       email,
       name,
@@ -42,15 +48,31 @@ async function login({ email, password }: Login): Promise<User | null> {
 }
 
 async function generateToken(user: User): Promise<Token> {
-  const token = sign(user, process.env.JWT_KEY as Secret);
-  await prisma.token.create({
-    data: {
-      token,
-      expireAt: new Date().getTime().toString(),
+  const oldToken = await prisma.token.findFirst({
+    where: {
+      userId: user.id,
     },
   });
 
-  return { token };
+  if (oldToken) {
+    await prisma.token.delete({
+      where: {
+        id: oldToken.id,
+      },
+    });
+  }
+
+  const token = sign(user, process.env.JWT_KEY as Secret);
+  return await prisma.token.create({
+    select: {
+      token: true,
+    },
+    data: {
+      token,
+      expireAt: `${new Date().getTime() + EXPIRATION_TIME}`,
+      userId: user.id ?? '',
+    },
+  });
 }
 
 async function checkToken(token: string): Promise<boolean> {
@@ -62,7 +84,7 @@ async function checkToken(token: string): Promise<boolean> {
 
   if (apiToken && apiToken.expireAt) {
     const expireAt = new Date(Number.parseInt(apiToken.expireAt));
-    if (expireAt > new Date()) {
+    if (new Date() > expireAt) {
       await prisma.token.delete({
         where: {
           id: apiToken.id,
@@ -73,7 +95,7 @@ async function checkToken(token: string): Promise<boolean> {
     } else {
       await prisma.token.update({
         data: {
-          expireAt: new Date().getTime().toString(),
+          expireAt: `${new Date().getTime() + EXPIRATION_TIME}`,
         },
         where: {
           id: apiToken.id,
@@ -87,18 +109,23 @@ async function checkToken(token: string): Promise<boolean> {
   return false;
 }
 
-async function logout(token: string): Promise<void> {
+async function logout(userId: string): Promise<void> {
   await prisma.token.delete({
     where: {
-      token,
+      userId,
     },
   });
+}
+
+function getTokenData(token: string): User {
+  return decode(token) as User;
 }
 
 export default {
   register,
   login,
+  logout,
   generateToken,
   checkToken,
-  logout,
+  getTokenData,
 };

@@ -40,7 +40,9 @@ model Cost {
 model Token {
   id       String @id @default(uuid())
   token    String
+  userId   String
   expireAt String
 
   @@unique([token])
+  @@unique([userId])
 }
