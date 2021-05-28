@@ -36,3 +36,11 @@ model Cost {
   centerId String
   center   Center @relation(fields: [centerId], references: [id])
 }
+
+model Token {
+  id       String @id @default(uuid())
+  token    String
+  expireAt String
+
+  @@unique([token])
+}
