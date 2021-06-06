@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { authenticateJwt } from '../middlewares/authenticate-jwt';
-import service from '../services/center.service';
+import service from '../services/cost.service';
 import { constants } from 'http2';
 import { HttpError } from '../classes/http-error';
 
@@ -8,8 +8,8 @@ const app = express();
 
 app.post('/', authenticateJwt, async (req: Request, res: Response) => {
   try {
-    const center = await service.create(req.body, req.body.tokenData?.id);
-    res.send(center);
+    const cost = await service.create(req.body);
+    res.send(cost);
   } catch (e) {
     if (e.code === 'P2002') {
       res
@@ -17,7 +17,7 @@ app.post('/', authenticateJwt, async (req: Request, res: Response) => {
         .send(
           new HttpError(
             constants.HTTP_STATUS_PRECONDITION_FAILED,
-            'Centro de custo já cadastrado!'
+            'Custo já cadastrado!'
           )
         );
 
@@ -31,26 +31,11 @@ app.post('/', authenticateJwt, async (req: Request, res: Response) => {
   }
 });
 
-app.get('/', authenticateJwt, async (req: Request, res: Response) => {
-  try {
-    const centers = await service.find(
-      req.body.tokenData.id,
-      req.query?.query as string
-    );
-    res.send(centers);
-  } catch (e) {
-    console.error(e);
-    res
-      .status(constants.HTTP_STATUS_INTERNAL_SERVER_ERROR)
-      .send(new HttpError());
-  }
-});
-
 app.get('/:id', authenticateJwt, async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-    const center = await service.findById(id);
-    res.send(center);
+    const id = req.query.id as string;
+    const cost = await service.findById(id);
+    res.send(cost);
   } catch (e) {
     console.error(e);
     res
@@ -62,8 +47,7 @@ app.get('/:id', authenticateJwt, async (req: Request, res: Response) => {
 app.put('/:id', authenticateJwt, async (req: Request, res: Response) => {
   try {
     const id = req.query.id as string;
-    const name = req.body.name;
-    const center = await service.update(id, name);
+    const center = await service.update(id, req.body);
     res.send(center);
   } catch (e) {
     console.error(e);

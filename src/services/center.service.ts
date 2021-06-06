@@ -3,11 +3,11 @@ import { Center } from '../interfaces/center.interface';
 
 const prisma = new PrismaClient();
 
-async function create(data: Center, userId: string): Promise<Center> {
+async function create({ name }: Center, userId: string): Promise<Center> {
   return await prisma.center.create({
     data: {
       userId,
-      name: data.name,
+      name,
     },
   });
 }
